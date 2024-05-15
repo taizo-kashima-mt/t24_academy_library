@@ -27,3 +27,12 @@ label.input_title {
     border-radius: 0.5rem;
     border: none;
 }
+
+/* rental/edit.css */
+/* 5/14に追加 */
+.alert.alert-danger p {
+    color: rgb(255, 0, 0); /* エラーメッセージのフォントカラーを赤色に設定 */
+    margin-top: 5px; /* エラーメッセージの上側の余白を追加 */
+    font-size: 16px; /* エラーメッセージのフォントサイズを調整 */
+}
+

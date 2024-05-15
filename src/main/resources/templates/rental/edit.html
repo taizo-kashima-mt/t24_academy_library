@@ -3,8 +3,8 @@
 
 <head th:replace="~{common :: meta_header('貸出編集',~{::link},~{::script})}">
     <title th:text="${title}+' | MTLibrary'"></title>
-    <link rel="stylesheet" th:href="@{/css/rental/add.css}" />
-    <script type="text/javascript" th:src="@{/js/rental/add.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/rental/edit.css}" />
+    <script type="text/javascript" th:src="@{/js/rental/edit.js}"></script>
 </head>
 
 <body>
@@ -20,7 +20,8 @@
                         <a th:href="@{/rental/index}" class="link">← 一覧へ戻る</a>
                     </span>
                 </div>
-                <form id="rental_add_form" th:object="${rentalManageDto}" th:action="@{/rental/add}" method="post">
+                <form id="rental_edit_form" th:object="${rentalManageDto}" th:action="@{/rental/{id}/edit(id=*{id})}" method="post">
+
                     <div class="mb30">
                         <label class="input_title" for="employeeId">社員番号<span class="text-red asterisk">＊</span></label>
                         <select id="employeeId" class="form_input" name="employeeId" required>
@@ -72,10 +73,17 @@
                         </select>
                         <div class="error_msg" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></div>
                     </div>
+                    
+                    <!-- エラーメッセージを追加 -->
+                    <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                        <p th:text="${errorMessage}"></p>
+                    </div>
+
                     <div class="btn_block">
-                        <button type="submit" id="submit_btn">保存</button>
+                        <input id="submit_btn" type="submit" value="変更">
                     </div>
                 </form>
+
             </div>
         </div>
     </div>
