@@ -10,6 +10,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jp.co.metateam.library.values.RentalStatus;
+import jp.co.metateam.library.values.StockStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -150,12 +151,12 @@ public class RentalManageDto {
         Integer oldStatus = rentalManage.getStatus();
         Integer newStatus = rentalManageDto.getStatus();
 
-        if (oldStatus == 0 && newStatus == 1) {
+        if (oldStatus == RentalStatus.RENT_WAIT.getValue() && newStatus == RentalStatus.RENTAlING.getValue()) {
             if (!rentalDate.equals(currentDate)) {
                 return "貸出予定日は現在の日付で登録して下さい";
             }
         }
-        if (oldStatus == 1 && newStatus == 2) {
+        if (oldStatus == RentalStatus.RENTAlING.getValue() && newStatus == RentalStatus.RETURNED.getValue()) {
             if (!returnDate.equals(currentDate)) {
                 return "返却予定日は現在の日付で登録して下さい";
             }
