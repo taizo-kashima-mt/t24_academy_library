@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jp.co.metateam.library.model.Account;
 
-
 import jp.co.metateam.library.model.RentalManage;
 import jp.co.metateam.library.model.RentalManageDto;
 import jp.co.metateam.library.model.Stock;
@@ -18,8 +17,6 @@ import jp.co.metateam.library.repository.RentalManageRepository;
 import jp.co.metateam.library.repository.StockRepository;
 import jp.co.metateam.library.values.RentalStatus;
 
-
-
 @Service
 public class RentalManageService {
 
@@ -27,20 +24,19 @@ public class RentalManageService {
     private final RentalManageRepository rentalManageRepository;
     private final StockRepository stockRepository;
 
-     @Autowired
+    @Autowired
     public RentalManageService(
-        AccountRepository accountRepository,
-        RentalManageRepository rentalManageRepository,
-        StockRepository stockRepository
-    ) {
+            AccountRepository accountRepository,
+            RentalManageRepository rentalManageRepository,
+            StockRepository stockRepository) {
         this.accountRepository = accountRepository;
         this.rentalManageRepository = rentalManageRepository;
         this.stockRepository = stockRepository;
     }
 
     @Transactional
-    public List <RentalManage> findAll() {
-        List <RentalManage> rentalManageList = this.rentalManageRepository.findAll();
+    public List<RentalManage> findAll() {
+        List<RentalManage> rentalManageList = this.rentalManageRepository.findAll();
 
         return rentalManageList;
     }
@@ -50,7 +46,7 @@ public class RentalManageService {
         return this.rentalManageRepository.findById(id).orElse(null);
     }
 
-    @Transactional 
+    @Transactional
     public void save(RentalManageDto rentalManageDto) throws Exception {
         try {
             Account account = this.accountRepository.findByEmployeeId(rentalManageDto.getEmployeeId()).orElse(null);
@@ -79,15 +75,13 @@ public class RentalManageService {
         }
     }
 
+    // アップデートを追加します
 
-    //アップデートを追加します
-    
     @Transactional
     public void update(Long id, RentalManageDto rentalManageDto) throws Exception {
-       
-       
+
         try {
- 
+
             Account account = this.accountRepository.findByEmployeeId(rentalManageDto.getEmployeeId()).orElse(null);
             if (account == null) {
                 throw new Exception("Rental record not found.");
@@ -96,24 +90,21 @@ public class RentalManageService {
             if (stock == null) {
                 throw new Exception("Rental record not found.");
             }
-           
+
             RentalManage rentalManage = this.rentalManageRepository.findById(id).orElse(null);
             if (rentalManage == null) {
                 throw new Exception("RentalManage record not found.");
             }
- 
-                setRentalStatusDate(rentalManage, rentalManageDto.getStatus());
-   
-                rentalManage.setId(rentalManageDto.getId());
-                rentalManage.setAccount(account);
-                rentalManage.setExpectedRentalOn(rentalManageDto.getExpectedRentalOn());
-                rentalManage.setExpectedReturnOn(rentalManageDto.getExpectedReturnOn());
-                rentalManage.setStatus(rentalManageDto.getStatus());
-                rentalManage.setStock(stock);
-   
-   
-               
-   
+
+            setRentalStatusDate(rentalManage, rentalManageDto.getStatus());
+
+            rentalManage.setId(rentalManageDto.getId());
+            rentalManage.setAccount(account);
+            rentalManage.setExpectedRentalOn(rentalManageDto.getExpectedRentalOn());
+            rentalManage.setExpectedReturnOn(rentalManageDto.getExpectedReturnOn());
+            rentalManage.setStatus(rentalManageDto.getStatus());
+            rentalManage.setStock(stock);
+
             // データベースへの保存
             this.rentalManageRepository.save(rentalManage);
         } catch (Exception e) {
@@ -124,7 +115,7 @@ public class RentalManageService {
 
     private RentalManage setRentalStatusDate(RentalManage rentalManage, Integer status) {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        
+
         if (status == RentalStatus.RENTAlING.getValue()) {
             rentalManage.setRentaledAt(timestamp);
         } else if (status == RentalStatus.RETURNED.getValue()) {
@@ -136,17 +127,18 @@ public class RentalManageService {
         return rentalManage;
     }
 
-    ///ここから追加(5/16)
+    /// ここから追加(5/16)
     @Transactional
-    public List<RentalManage> findByStockIdAndStatusIn(String Id,Long rentalId){
-        List<RentalManage> rentalAvailable = this.rentalManageRepository.findByStockIdAndStatusIn(Id,rentalId);
+    public List<RentalManage> findByStockIdAndStatusIn(String Id, Long rentalId) {
+        List<RentalManage> rentalAvailable = this.rentalManageRepository.findByStockIdAndStatusIn(Id, rentalId);
         return rentalAvailable;
     }
+
     @Transactional
-    public List<RentalManage> findByStockIdAndStatusIn(String Id){
+    public List<RentalManage> findByStockIdAndStatusIn(String Id) {
         List<RentalManage> rentalAvailable = this.rentalManageRepository.findByStockIdAndStatusIn(Id);
         return rentalAvailable;
     }
-    ///ここまで
+    /// ここまで
 
 }
