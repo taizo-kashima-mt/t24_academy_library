@@ -2,6 +2,7 @@ package jp.co.metateam.library.model;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -9,9 +10,14 @@ import org.springframework.format.annotation.DateTimeFormat;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jp.co.metateam.library.values.RentalStatus;
+import jp.co.metateam.library.values.StockStatus;
 import lombok.Getter;
 import lombok.Setter;
 
+import jp.co.metateam.library.service.RentalManageService;
+import java.util.List;
+
+//import jp.co.metateam.library.service.StockService;
 
 /**
  * 貸出管理DTO
@@ -22,21 +28,21 @@ public class RentalManageDto {
 
     private Long id;
 
-    @NotEmpty(message="在庫管理番号は必須です")
+    @NotEmpty(message = "在庫管理番号は必須です")
     private String stockId;
 
-    @NotEmpty(message="社員番号は必須です")
+    @NotEmpty(message = "社員番号は必須です")
     private String employeeId;
 
-    @NotNull(message="貸出ステータスは必須です")
+    @NotNull(message = "貸出ステータスは必須です")
     private Integer status;
 
-    @DateTimeFormat(pattern="yyyy-MM-dd")
-    @NotNull(message="貸出予定日は必須です")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    @NotNull(message = "貸出予定日は必須です")
     private Date expectedRentalOn;
 
-    @DateTimeFormat(pattern="yyyy-MM-dd")
-    @NotNull(message="返却予定日は必須です")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    @NotNull(message = "返却予定日は必須です")
     private Date expectedReturnOn;
 
     private Timestamp rentaledAt;
@@ -49,8 +55,8 @@ public class RentalManageDto {
 
     private Account account;
 
-    ////加えました（5/13）
-    private Integer newStatus;  
+    //// 加えました（5/13）
+    private Integer newStatus;
 
     // getStatusメソッドを追加
     public Integer getStatus() {
@@ -60,41 +66,105 @@ public class RentalManageDto {
     // getNewStatusメソッドを追加
     public Integer getNewStatus() {
         return this.newStatus;
-    }    
-    ////ここまでです
+    }
+    //// ここまで
 
-    ////加えました（5/14） 
-        // 貸出状態が有効かどうかをチェックするメソッド
-            public String isValidStatus(Integer previousStatus) {
-                if(previousStatus == RentalStatus.RENT_WAIT.getValue() && this.status == RentalStatus.RETURNED.getValue()){
-                    return "貸出ステータスは「貸出待ち」から「返却済み」に変更できません";
-                }else if(previousStatus == RentalStatus.RENTAlING.getValue() && this.status == RentalStatus.RENT_WAIT.getValue()){
-                    return "貸出ステータスは「貸出中」から「貸出待ち」に変更できません";
-                }else if(previousStatus == RentalStatus.RENTAlING.getValue() && this.status == RentalStatus.CANCELED.getValue()){
-                    return "貸出ステータスは「貸出中」から「キャンセル」に変更できません";
-                }else if(previousStatus == RentalStatus.RETURNED.getValue() && this.status == RentalStatus.RENT_WAIT.getValue()){
-                    return "貸出ステータスは「返却済み」から「貸出待ち」に変更できません";
-                }else if(previousStatus == RentalStatus.RETURNED.getValue() && this.status == RentalStatus.RENTAlING.getValue()){
-                     return "貸出ステータスは「返却済み」から「貸出中」に変更できません";
-                }else if(previousStatus == RentalStatus.RETURNED.getValue() && this.status == RentalStatus.CANCELED.getValue()){
-                    return "貸出ステータスは「返却済み」から「キャンセル」に変更できません";
-                }else if(previousStatus == RentalStatus.CANCELED.getValue() && this.status == RentalStatus.RENT_WAIT.getValue()){
-                    return "貸出ステータスは「キャンセル」から「貸出待ち」に変更できません";
-                }else if(previousStatus == RentalStatus.CANCELED.getValue() && this.status == RentalStatus.RENTAlING.getValue()){
-                    return "貸出ステータスは「キャンセル」から「貸出中」に変更できません";
-                }else if(previousStatus == RentalStatus.CANCELED.getValue() && this.status == RentalStatus.RETURNED.getValue()){
-                    return "貸出ステータスは「キャンセル」から「返却済み」に変更できません";
+    //// 加えました（5/14）
+    // 貸出状態が有効かどうかをチェックするメソッド
+    public String isValidStatus(Integer previousStatus) {
+        if (previousStatus == RentalStatus.RENT_WAIT.getValue() && this.status == RentalStatus.RETURNED.getValue()) {
+            return "貸出ステータスは「貸出待ち」から「返却済み」に変更できません";
+        } else if (previousStatus == RentalStatus.RENTAlING.getValue()
+                && this.status == RentalStatus.RENT_WAIT.getValue()) {
+            return "貸出ステータスは「貸出中」から「貸出待ち」に変更できません";
+        } else if (previousStatus == RentalStatus.RENTAlING.getValue()
+                && this.status == RentalStatus.CANCELED.getValue()) {
+            return "貸出ステータスは「貸出中」から「キャンセル」に変更できません";
+        } else if (previousStatus == RentalStatus.RETURNED.getValue()
+                && this.status == RentalStatus.RENT_WAIT.getValue()) {
+            return "貸出ステータスは「返却済み」から「貸出待ち」に変更できません";
+        } else if (previousStatus == RentalStatus.RETURNED.getValue()
+                && this.status == RentalStatus.RENTAlING.getValue()) {
+            return "貸出ステータスは「返却済み」から「貸出中」に変更できません";
+        } else if (previousStatus == RentalStatus.RETURNED.getValue()
+                && this.status == RentalStatus.CANCELED.getValue()) {
+            return "貸出ステータスは「返却済み」から「キャンセル」に変更できません";
+        } else if (previousStatus == RentalStatus.CANCELED.getValue()
+                && this.status == RentalStatus.RENT_WAIT.getValue()) {
+            return "貸出ステータスは「キャンセル」から「貸出待ち」に変更できません";
+        } else if (previousStatus == RentalStatus.CANCELED.getValue()
+                && this.status == RentalStatus.RENTAlING.getValue()) {
+            return "貸出ステータスは「キャンセル」から「貸出中」に変更できません";
+        } else if (previousStatus == RentalStatus.CANCELED.getValue()
+                && this.status == RentalStatus.RETURNED.getValue()) {
+            return "貸出ステータスは「キャンセル」から「返却済み」に変更できません";
+        }
+        return null;
+    }
+
+    // 貸出可否チェック（登録時）
+    public String rentalCheck(RentalManageService rentalManageService, RentalManageDto rentalManageDto, String id) {
+        List<RentalManage> rentalAvailable = rentalManageService.findByStockIdAndStatusIn(id);
+        if (rentalAvailable != null) {
+            // ループ処理
+            for (RentalManage rentalManage : rentalAvailable) {
+                if (rentalManage.getExpectedReturnOn().after(rentalManageDto.getExpectedRentalOn())
+                        &&
+                        rentalManage.getExpectedRentalOn().before(rentalManageDto.getExpectedReturnOn())) {
+                    return "貸出期間が重複しています";
                 }
-                return null;
             }
+            return null;
+        } else {
+            return null;
+        }
+    }
 
-            public boolean isValidRentalDate() {
-                LocalDate today = LocalDate.now();
-                return expectedRentalOn.equals(today); // または必要に応じて条件を調整
+    // 貸出可否チェック(更新時)
+    public String rentalCheck(RentalManageService rentalManageService,
+            RentalManageDto rentalManageDto, String id, Long rentalId) {
+        List<RentalManage> rentalAvailable = rentalManageService.findByStockIdAndStatusIn(id, rentalId);
+        if (rentalAvailable != null) {
+            // ループ処理
+            for (RentalManage rentalManage : rentalAvailable) {
+                if (rentalManage.getExpectedReturnOn().after(rentalManageDto.getExpectedRentalOn())
+                        &&
+                        rentalManage.getExpectedRentalOn().before(rentalManageDto.getExpectedReturnOn())) {
+                    return "貸出期間が重複しています";
+                }
             }
-            public boolean isValidReturnDate() {
-                LocalDate today = LocalDate.now();
-                return expectedReturnOn.equals(today); // または必要に応じて条件を調整
+            return null;
+        } else {
+            return null;
+        }
+    }
+
+    // 貸出ステータス変更時の日付チェック
+    public String isValidDate(RentalManageDto rentalManageDto, RentalManage rentalManage) {
+        LocalDate currentDate = LocalDate.now(ZoneId.of("Asia/Tokyo")); // 現在の日付を取得。
+        // rentalDateとreturnDateをLocalDateに変換
+        LocalDate rentalDate = rentalManageDto.getExpectedRentalOn().toInstant().atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        LocalDate returnDate = rentalManageDto.getExpectedReturnOn().toInstant().atZone(ZoneId.systemDefault())
+                .toLocalDate();
+
+        Integer oldStatus = rentalManage.getStatus();
+        Integer newStatus = rentalManageDto.getStatus();
+
+        if (oldStatus == RentalStatus.RENT_WAIT.getValue() && newStatus == RentalStatus.RENTAlING.getValue()) {
+            if (!rentalDate.equals(currentDate)) {
+                return "貸出予定日は現在の日付で登録して下さい";
             }
-    
+        }
+        if (oldStatus == RentalStatus.RENTAlING.getValue() && newStatus == RentalStatus.RETURNED.getValue()) {
+            if (!returnDate.equals(currentDate)) {
+                return "返却予定日は現在の日付で登録して下さい";
+            }
+        }
+        if (rentalDate.isAfter(returnDate)) {
+            return "貸出予定日は返却予定日よりも前に設定してください";
+        }
+        return null;
+    }
+
 }
