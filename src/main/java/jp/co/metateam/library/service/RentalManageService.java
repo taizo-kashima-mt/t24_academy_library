@@ -19,6 +19,7 @@ import jp.co.metateam.library.repository.StockRepository;
 import jp.co.metateam.library.values.RentalStatus;
 
 
+
 @Service
 public class RentalManageService {
 
@@ -121,7 +122,6 @@ public class RentalManageService {
 
     }
 
-
     private RentalManage setRentalStatusDate(RentalManage rentalManage, Integer status) {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         
@@ -135,4 +135,18 @@ public class RentalManageService {
 
         return rentalManage;
     }
+
+    ///ここから追加(5/16)
+    @Transactional
+    public List<RentalManage> findByStockIdAndStatusIn(String Id,Long rentalId){
+        List<RentalManage> rentalAvailable = this.rentalManageRepository.findByStockIdAndStatusIn(Id,rentalId);
+        return rentalAvailable;
+    }
+    @Transactional
+    public List<RentalManage> findByStockIdAndStatusIn(String Id){
+        List<RentalManage> rentalAvailable = this.rentalManageRepository.findByStockIdAndStatusIn(Id);
+        return rentalAvailable;
+    }
+    ///ここまで
+
 }
