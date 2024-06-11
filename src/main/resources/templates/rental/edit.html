@@ -7,6 +7,7 @@
     <script type="text/javascript" th:src="@{/js/rental/edit.js}"></script>
 </head>
 
+
 <body>
     <div class="contents">
         <div th:replace="~{common :: main_sidebar}"></div>
@@ -20,7 +21,8 @@
                         <a th:href="@{/rental/index}" class="link">← 一覧へ戻る</a>
                     </span>
                 </div>
-                <form id="rental_edit_form" th:object="${rentalManageDto}" th:action="@{/rental/{id}/edit(id=*{id})}" method="post">
+                <form id="rental_edit_form" th:object="${rentalManageDto}" th:action="@{/rental/{id}/edit(id=*{id})}"
+                    method="post" novalidate>
 
                     <div class="mb30">
                         <label class="input_title" for="employeeId">社員番号<span class="text-red asterisk">＊</span></label>
@@ -73,7 +75,7 @@
                         </select>
                         <div class="error_msg" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></div>
                     </div>
-                    
+
                     <!-- エラーメッセージを追加 -->
                     <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
                         <p th:text="${errorMessage}"></p>

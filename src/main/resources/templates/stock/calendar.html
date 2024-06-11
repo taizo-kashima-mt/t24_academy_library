@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
+
 <head th:replace="~{common :: meta_header('在庫カレンダー',~{::link},~{::script})}">
     <title th:text="${title}+' | MTLibrary'"></title>
     <link rel="stylesheet" th:href="@{/css/stock/calendar.css}" />
     <script type="text/javascript" th:src="@{/js/stock/add.js}"></script>
 </head>
+
 <body>
     <div class="contents">
         <div th:replace="~{common :: main_sidebar}"></div>
@@ -26,20 +28,36 @@
                             <col style="width: 70px;" th:each="i : ${#numbers.sequence(0,daysInMonth)}">
                         </colgroup>
                         <thead>
-                            <tr>
+                            <tr class="calendar_column">
                                 <th class="header_book" rowspan="2">書籍名</th>
                                 <th class="header_stock" rowspan="2">在庫数</th>
-                                <th class="header_days" th:colspan="${daysInMonth}" th:text="${targetYear + '年' + targetMonth + '月'}"></th>
                             </tr>
                             <tr class="days">
                                 <th th:each="day : ${daysOfWeek}" th:text="${day}"></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <!-- FIXME ControllerやService側の処理とともに表示方法を考える -->
-                                <td th:each="stock, stat : ${stocks}" th:text="${stock}"></td>
+                            <!-- 書籍名、在庫数、および日ごとの在庫数を表示 -->
+                            <tr th:each="bookData : ${bookData}">
+                                <td th:text="${bookData[0]}"></td> <!-- 書籍名 -->
+                                <td th:text="${bookData[1]}"></td> <!-- 在庫数 -->
+                                <!-- 日ごとの在庫数 -->
+                                <td th:each="stockPerDay, index : ${bookData}" th:if="${index.index > 1}">
+                                    <span th:if="${stockPerDay[2] != 0}">
+                                        <a
+                                            th:href="@{/rental/add(stockIdAvailebleRentalIndex1=${stockPerDay[1]}, currentDate=${stockPerDay[0]})}">
+                                            <span th:text="${stockPerDay[2]}"></span>
+                                        </a>
+                                    </span>
+                                    <span th:unless="${stockPerDay[2] != 0}">
+                                        <span>×</span>
+                                    </span>
+                                </td>
+
                             </tr>
+                            <div th:text="${stockIdAvailebleRentalIndex1}"></div>
+                            <div th:text="${currentDate}"></div>
+
                         </tbody>
                     </table>
                 </div>
