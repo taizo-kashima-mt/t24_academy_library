@@ -1,6 +1,9 @@
 package jp.co.metateam.library.controller;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -89,40 +92,23 @@ public class RentalManageController {
     // Springのアノテーションを使用。GETリクエストが "/rental/add" というURLに対応。
     // アノテーション…
     @GetMapping("/rental/add")
-    // 引数のModelオブジェクトは、ビューにデータを渡すためのもの。
-    public String add(Model model) {
-        // Stock・Accountクラスのインスタンスリストを取得。変数名stockList・accounts。
-        // 本クラスで定義したstockService・accountServiceの全ての情報を取得
+    public String add(Model model,
+            @RequestParam(value = "stockIdAvailebleRentalIndex1", required = false) String stockIdAvailebleRentalIndex1,
+            @RequestParam(value = "currentDate", required = false) LocalDate currentDate) {
         List<Stock> stockList = this.stockService.findAll();
         List<Account> accounts = this.accountService.findAll();
-        // モデルに情報のリストを追加する。
-        // addAttribute()はモデルに属性を追加するメソッド。属性は“名前”と値のペアで構成。
-        // 上記より、ビュー（HTMLテンプレート）において${accounts}の様な仕方でこれらの属性にアクセスが可能。
-        model.addAttribute("accounts", accounts);
-        model.addAttribute("stockList", stockList);
-        /*
-         * RentalStatus.values()について。
-         * //RentalStatusクラスの列挙型を全権取得している。
-         * //Javaの列挙型(enum)は、複数の定数(値)を定義するための特殊な型。
-         * //列挙型の使用で、関連する定数(値)をグループ化し、プログラム内で使いやすくなる。
-         * 今回は、
-         * public enum RentalStatus implements Values {
-         * RENT_WAIT(0, "貸出待ち")
-         * , RENTAlING(1, "貸出中")
-         * , RETURNED(2, "返却済み")
-         * , CANCELED(3, "キャンセル");
-         * }
-         */
-        model.addAttribute("rentalStatus", RentalStatus.values());
-        /*
-         * モデルに"rentalManageDto"という名前の属性が含まれていない場合は、新しいRentalManageDtoオブジェクトをモデルに追加する。
-         * 上記は、フォームを初期化するために使用される（？）。
-         */
-        if (!model.containsAttribute("rentalManageDto")) {
-            model.addAttribute("rentalManageDto", new RentalManageDto());
+        Stock stock = this.stockService.findById(stockIdAvailebleRentalIndex1);
+
+        if (currentDate != null) {
+            Date currentDateAsDate = Date.from(currentDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+            model.addAttribute("currentDate", currentDateAsDate);
+            model.addAttribute("stock", stock);
         }
 
-        // モデルに貸出管理DTOを追加
+        model.addAttribute("accounts", accounts);
+        model.addAttribute("stockList", stockList);
+        model.addAttribute("rentalStatus", RentalStatus.values());
+
         if (!model.containsAttribute("rentalManageDto")) {
             model.addAttribute("rentalManageDto", new RentalManageDto());
         }
@@ -134,19 +120,40 @@ public class RentalManageController {
     @PostMapping("/rental/add")
     /*
      * HTTP POSTリクエストが "/rental/add" に送信されたときに呼び出される。
-     * 
-     * @Validアノテーションは、rentalManageDtoオブジェクトのバリデーションを有効にする
-     * BindingResultオブジェクトはバインディング結果を保持する。
-     * 
-     * @ModelAttributeアノテーションは、リクエストパラメーターをJavaオブジェクトにバインドします。
+     * > @Validアノテーションは、rentalManageDtoオブジェクトのバリデーションを有効にする
+     * > BindingResultオブジェクトはバインディング結果を保持する。
+     * > @ModelAttributeアノテーションでは、メソッドの引数で、RentalManageDtoという名前のクラスのオブジェクトが渡される。
+     * > BindingResult resultは、 バリデーションの結果を保持するオブジェクト
+     * > RedirectAttributes raは、リダイレクト先のページに情報を渡すためのオブジェクト
+     * > Model modelは、データをビューに渡すためのオブジェクト
      */
     public String save(@Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result,
             RedirectAttributes ra, Model model) {
-        try {
+        try {// 例外がスローされたらcatchに行く
 
             // バリデーションチェック
-            if (result.hasErrors()) {
-                throw new Exception("Validation error.");
+            if (result.hasErrors()) {// もしバリデーションエラーが発生したら
+                throw new Exception("Validation error.");// Validation errorというメッセージを持つ新しいExceptionオブジェクトが作成・スロー
+            }
+            // 貸出予定日フォーマットチェック
+            List<String> formatErrors = rentalManageDto.formatCheck(rentalManageDto);// ListをStringで定義して、formatCheckに登録データ(rentalManageDto)を引数で渡す
+            if (!formatErrors.isEmpty()) {// もし、formatErrorsにエラーメッセージが返されていたら
+                for (String error : formatErrors) {// 拡張for文：formatErrorsリスト内の各要素(今回は文字列)をerrorというループ時に使用する変数に順番に代入して処理
+                    if (error.equals("貸出予定日はyyyy-MM-ddで入力してください")) {// 等号演算子は、そのオブジェクトが参照しているもので比較する。ある変数の参照が“あ”で他の変数が新しく文字列オブジェクトを作成し、その上で“あ”と定義したとき、等号演算子ではfalseになる。よってequalsで文字を比較してあげる
+                        result.addError(new FieldError("rentalManageDto", "expectedRentalOn", error));// FieldErrorオブジェクトが生成され、resultオブジェクトに追加
+                    } else if (error.equals("返却予定日はyyyy-MM-ddで入力してください")) {
+                        result.addError(new FieldError("rentalManageDto", "expectedReturnOn", error));
+                    }
+                }
+                addCommonAttributes(model);
+                return "rental/add";// redirectでは新しいURLを提供する。よって、ページ遷移がない場合はreturnの方がいい
+            }
+            // 貸出予定日のチェック（6/11）
+            String rentalDateError = rentalManageDto.isValidRentalDate(rentalManageDto);
+            if (rentalDateError != null) {
+                result.addError(new FieldError("rentalManageDto", "expectedRentalOn", rentalDateError));
+                addCommonAttributes(model);
+                return "rental/add";
             }
 
             // 利用可否チェック 追加（5/17）
@@ -163,21 +170,23 @@ public class RentalManageController {
                 // rentalManageDtoからexpectedRentalOnとexpectedReturnOnの値を取得して、FieldErrorオブジェクトに追加する
                 result.addError(new FieldError("rentalManageDto", "expectedRentalOn", DateError));
                 result.addError(new FieldError("rentalManageDto", "expectedReturnOn", DateError));
+                addCommonAttributes(model);
+                return "rental/add";
             }
             // ここまで
             // 登録処理。RentalMangeServiceを使用し、rentalManageDtoオブジェクトを保存する（返す？）
             this.rentalManageService.save(rentalManageDto);
 
-            return "redirect:/rental/index";
+            return "redirect:/rental/index";// ページ遷移のためredirect
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage());// 例外が発生したことをログファイルに記録
             /*
              * リダイレクト先のビューにデータを渡すためのフラッシュ属性"rentalManageDto"を追加。
              * フラッシュ属性...リダイレクト先のリクエスト「のみ」で利用可能であり、セッションに保存された後に自動的に削除される
              */
-            ra.addFlashAttribute("rentalManageDto", rentalManageDto);
+            ra.addFlashAttribute("rentalManageDto", rentalManageDto);// 登録内容を再表示
             // (バリデーションチェックの結果)をリダイレクト先で表示
-            ra.addFlashAttribute("org.springframework.validation.BindingResult.rentalManageDto", result);
+            ra.addFlashAttribute("org.springframework.validation.BindingResult.rentalManageDto", result);// バリデーション結果をFlash属性として追加
 
             return "redirect:/rental/add";
         }
@@ -187,8 +196,8 @@ public class RentalManageController {
     // {id}はパス変数として受け取る。特定のIDを持つレンタルの編集画面を表示するために使用。
     @GetMapping("/rental/{id}/edit")
     // @PathVariableアノテーションを使用して、URLからidパラメーターを受け取る。
-    public String edit(@PathVariable("id") String id, Model model,
-            @RequestParam(name = "errorMessage", required = false) String errorMessage) {
+    public String edit(@PathVariable("id") String id, Model model, // @RequestParam アノテーションは、HTTPリクエストのパラメーターを取得するために使用
+            @RequestParam(name = "errorMessage", required = false) String errorMessage) {// required=falseはerrorMessageパラメーターが必須ではないことを示す。StringerrorMessageの中にエラーメッセージを格納
         // 全件取得
         List<RentalManage> rentalManageList = this.rentalManageService.findAll();
         List<Account> accounts = this.accountService.findAll();
@@ -242,8 +251,22 @@ public class RentalManageController {
             if (result.hasErrors()) {
                 model.addAttribute("errorMessage", "入力内容にエラーがあります");
                 // バリデーションエラーがある場合は編集画面に戻る
-                addCommonAttributes(model);
+                editCommonAttributes(model, rentalManageDto.getId(), rentalManageDto);
                 return "rental/edit";
+            }
+            // 予定日フォーマットチェック
+            // エラーリスト定義
+            List<String> formatErrors = rentalManageDto.formatCheck(rentalManageDto);
+            if (!formatErrors.isEmpty()) {
+                for (String error : formatErrors) {
+                    if (error.equals("貸出予定日はyyyy-MM-ddで入力してください")) {
+                        result.addError(new FieldError("rentalManageDto", "expectedRentalOn", error));
+                    } else if (error.equals("返却予定日はyyyy-MM-ddで入力してください")) {
+                        result.addError(new FieldError("rentalManageDto", "expectedReturnOn", error));
+                    }
+                }
+                editCommonAttributes(model, rentalManageDto.getId(), rentalManageDto);
+                return "rental/add";
             }
             // 貸出情報のステータスをチェック
             RentalManage rentalManage = this.rentalManageService.findById(id);
@@ -251,7 +274,7 @@ public class RentalManageController {
             if (statusErrorMessage != null) {
                 model.addAttribute("errorMessage", statusErrorMessage);
                 // 無効な変更をした場合は編集画面に戻る
-                addCommonAttributes(model);
+                editCommonAttributes(model, rentalManageDto.getId(), rentalManageDto);
                 return "rental/edit";
             }
             // 日付チェック（5/20）
@@ -259,7 +282,7 @@ public class RentalManageController {
             if (dateErrorMessage != null) {
                 model.addAttribute("errorMessage", dateErrorMessage);
                 // 日付が現在日になっていない場合は編集画面に戻る
-                addCommonAttributes(model);
+                editCommonAttributes(model, rentalManageDto.getId(), rentalManageDto);
                 return "rental/edit";
             }
             // 利用可否チェック 追加（5/17）
@@ -267,7 +290,7 @@ public class RentalManageController {
             if (errorMessage != null) {
                 result.addError(new FieldError("rentalManageDto", "stockId", errorMessage));
                 // 書籍が利用不可の場合は編集画面に戻る
-                addCommonAttributes(model);
+                editCommonAttributes(model, rentalManageDto.getId(), rentalManageDto);
                 return "rental/edit";
             }
             // 貸出可否チェック 追加（5/16）
@@ -277,7 +300,7 @@ public class RentalManageController {
                 result.addError(new FieldError("rentalManageDto", "expectedRentalOn", DateError));
                 result.addError(new FieldError("rentalManageDto", "expectedReturnOn", DateError));
                 // 貸出期間に重複があった場合は編集画面に戻る
-                addCommonAttributes(model);
+                editCommonAttributes(model, rentalManageDto.getId(), rentalManageDto);
                 return "rental/edit";
             }
             // 更新処理
@@ -309,4 +332,44 @@ public class RentalManageController {
         model.addAttribute("stockList", stockList);
         model.addAttribute("rentalStatus", RentalStatus.values());
     }
+
+    private void editCommonAttributes(Model model, Long Id, RentalManageDto rentalManageDto) {
+        List<Stock> stockList = this.stockService.findStockAvailableAll();
+        List<Account> accounts = this.accountService.findAll();
+        model.addAttribute("accounts", accounts);
+        model.addAttribute("stockList", stockList);
+        model.addAttribute("rentalStatus", RentalStatus.values());
+
+        // Idを取得、RentalManageDtoを更新する
+        RentalManage rentalManage = rentalManageService.findById(Id);
+        rentalManageDto.setEmployeeId(rentalManage.getAccount().getEmployeeId());
+        rentalManageDto.setId(rentalManage.getId());
+        rentalManageDto.setExpectedRentalOn(rentalManage.getExpectedRentalOn());
+        rentalManageDto.setExpectedReturnOn(rentalManage.getExpectedReturnOn());
+        rentalManageDto.setStatus(rentalManage.getStatus());
+        rentalManageDto.setStockId(rentalManage.getStock().getId());
+
+        model.addAttribute("rentalManageDto", rentalManageDto);
+    }
+
+    // 在庫カレンダーからの遷移時のメソッドを作成（6/5）
+    /*
+     * @GetMapping("/rental/add")
+     * public String addByCalender(@RequestParam("bookName") String
+     * bookName, @RequestParam("date") String date,
+     * Model model) {
+     * List<Stock> stockList = this.stockService.findAll();
+     * List<Account> accounts = this.accountService.findAll();
+     * model.addAttribute("accounts", accounts);
+     * model.addAttribute("stockList", stockList);
+     * model.addAttribute("rentalStatus", RentalStatus.values());
+     * 
+     * if (!model.containsAttribute("calendarDto")) {
+     * model.addAttribute("calendarDto", new calendarDto());
+     * }
+     * 
+     * return "rental/add";
+     * }
+     */
+
 }

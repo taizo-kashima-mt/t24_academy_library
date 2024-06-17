@@ -1,8 +1,10 @@
 package jp.co.metateam.library.model;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -10,7 +12,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jp.co.metateam.library.values.RentalStatus;
-import jp.co.metateam.library.values.StockStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -164,7 +165,44 @@ public class RentalManageDto {
         if (rentalDate.isAfter(returnDate)) {
             return "貸出予定日は返却予定日よりも前に設定してください";
         }
+        if (rentalDate.isBefore(currentDate)) {
+            return "過去の日付を貸出予定日にすることはできません";
+        }
         return null;
+    }
+
+    // 貸出予定日のチェック（登録時）（6/11）
+    public String isValidRentalDate(RentalManageDto rentalManageDto) {
+        LocalDate currentDate = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+        LocalDate rentalDate = rentalManageDto.getExpectedRentalOn().toInstant().atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        if (rentalDate.isBefore(currentDate)) {
+            return "過去の日付を貸出予定日にすることができません";
+        }
+        return null;
+    }
+
+    // 予定日フォーマットチェック
+    public List<String> formatCheck(RentalManageDto rentalManageDto) {
+        // 本来「\d」だが、「\」は改行のエスケープシーケンスのため、Javaの文字列リテラル内で \ を表現するには \\ と書く必要がある。
+        String pattern = "\\d{4}-\\d{2}-\\d{2}";
+        // 文字列変換の型を定義。yyyy-MM-ddの形式で日付を文字列に。
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        // 複数表示のためエラーリスト定義
+        List<String> errors = new ArrayList<>();
+        // String型の貸出予定日・返却予定日を定義
+        String expectedRentalOnStr = sdf.format(rentalManageDto.getExpectedRentalOn());
+        String expectedReturnOnStr = sdf.format(rentalManageDto.getExpectedReturnOn());
+
+        // フォーマットチェック
+        if (!expectedRentalOnStr.matches(pattern)) {
+            errors.add("貸出予定日はyyyy-MM-ddで入力してください");
+        }
+        if (!expectedReturnOnStr.matches(pattern)) {
+            errors.add("返却予定日はyyyy-MM-ddで入力してください");
+        }
+
+        return errors;
     }
 
 }
